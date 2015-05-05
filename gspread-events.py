@@ -7,7 +7,7 @@
 
 import gspread
 import os
-
+import argparse
 from oauth2client.client import SignedJwtAssertionCredentials
 from datetime import date, datetime
 
@@ -37,15 +37,22 @@ def oauthLogin():
 
     return (gc)
 
-def extractEvents(gc):
+def extractEvents(gc, outDir):
     sh = gc.open(os.environ['EVENTS_SHEET'])
     ws = sh.worksheet("Events")
+
+    if ( not os.path.isdir(outDir) ):
+        print "Outdir %s not found" % outDir
+        exit(1)
 
     today = str(date.today().strftime('%-m/%-d/%Y'))
     allVals = ws.get_all_records()
 
-    upcoming = open("UpcomingEvents.md", "w")
-    past = open("PastEvents.md", "w")
+    upcomingFile = outDir + "/UpcomingEvents.md"
+    pastFile = outDir + "/PastEvents.md"
+
+    upcoming = open(upcomingFile, "w")
+    past = open(pastFile, "w")
 
     for row in allVals:
         thisDate = row['Date']
@@ -60,5 +67,8 @@ def extractEvents(gc):
                 past.write(thisEvent)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', help='Ouput Directory', default='/tmp')
+    args = parser.parse_args()
     gc = oauthLogin()
-    extractEvents(gc)
+    extractEvents(gc, args.d)
