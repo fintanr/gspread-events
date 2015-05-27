@@ -1,15 +1,18 @@
 #!/usr/bin/python
 #
-# an events calender cheet app, use a simple google spreadsheet
+# an events calender cheat app, use a simple google spreadsheet
 # to keep track of events, and generate a markdown file of past
-# and future events for use in Jekyll
+# and future events for use later in Jekyll
+#
+# we also pull a news feed for the same doc
 #
 
 import gspread
 import os
 import argparse
 from oauth2client.client import SignedJwtAssertionCredentials
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from time import strptime, mktime
 
 def oauthLogin():
     try:
@@ -66,9 +69,55 @@ def extractEvents(gc, outDir):
             else:
                 past.write(thisEvent)
 
+def extractNews(gc, outDir):
+    sh = gc.open(os.environ['EVENTS_SHEET'])
+    ws = sh.worksheet("News")
+
+    if ( not os.path.isdir(outDir) ):
+        print "Outdir %s not found" % outDir
+        exit(1)
+
+    allVals = ws.get_all_records()
+
+    allNewsFile = outDir + "/AllNews.md"
+    latestNewsFile = outDir + "/LatestNews.md"
+
+    allNews = open(allNewsFile, "w")
+    latestNews = open(latestNewsFile, "w")
+
+    ourNews = dict()
+    minCounter = 0
+
+    for row in allVals:
+        thisDate = row['Date']
+        longDate = datetime.fromtimestamp(mktime(strptime(thisDate, '%m/%d/%Y')))
+        thisNews = ""
+
+        if ( row['Publish'] == 'Yes' ):
+            if (row['Alternative_Text'] == ''):
+                thisNews = "* (" + row['Link'] + ")[" + row['Title'] + "]\n"
+            else:
+                thisNews = "* " + row['Alternative_Text'] + "\n"
+
+        if longDate in ourNews:
+            minCounter += 1
+            longDate = longDate + timedelta(minutes=minCounter)
+
+        ourNews[longDate] = thisNews
+
+    latestCounter = 0
+
+    for key in sorted(ourNews.keys(), reverse=True):
+        if ( latestCounter < 5 ):
+            latestNews.write(ourNews[key])
+            latestCounter += 1
+
+        allNews.write(ourNews[key])
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', help='Ouput Directory', default='/tmp')
     args = parser.parse_args()
     gc = oauthLogin()
-    extractEvents(gc, args.d)
+    #extractEvents(gc, args.d)
+    extractNews(gc, args.d)
