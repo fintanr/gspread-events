@@ -6,9 +6,10 @@ You need to have a google apps account setup which has access to the
 spreadsheet you are writing too, and the spreadsheet itself needs 
 an Events and News worksheet, with columns as detailed below 
 
-**Worksheet**|**Columns**
-Events|Date, Participation, Publish, Long Date String, Title, Location, Link
-News|Date, Publish, Title, Link, Alternative_Text
+| **Worksheet** |**Columns** |
+| ------------- | ---------- |
+| Events	| Date, Participation, Publish, Long Date String, Title, Location, Link |
+| News		| Date, Publish, Title, Link, Alternative_Text |
 
 Publish is always Yes or No.
 
