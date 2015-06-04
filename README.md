@@ -1,6 +1,6 @@
 # GSpread Events
 
-Read Events from a Google Spreadsheet and generate a markdown file.
+Read Events from a Google Spreadsheet and generate a yaml file.
 
 You need to have a google apps account setup which has access to the
 spreadsheet you are writing too, and the spreadsheet itself needs 

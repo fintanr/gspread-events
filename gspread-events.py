@@ -98,7 +98,7 @@ def extractNews(gc, outDir):
                 thisNews += "  url: " + row['Link'] + "\n"
                 thisNews += "  alternative: \n\n"
             else:
-                # we need to parse out the mark down..
+                # we need to parse out the markdown..
                 altText = markdown.markdown(row['Alternative_Text'])
                 # and markdown adds <p> ... </p> per spec, we need to remove
                 # theses
