@@ -24,14 +24,29 @@ EVENTS_SHEET=Name_of_Spreadsheet
 and then just call the script. Default output is to /tmp, use -d <outdir>
 for an alternative directory.
 
-There will be four markdown files generated
+There will be four yaml files generated
 
-* AllNews.md
-* LatestNews.md
-* PastEvents.md
-* UpcomingEvents.md
+* allnewsdata.yml		
+* newsdata.yml		
+* eventsdata.yml		
+* pasteventsdata.yml
+
+## Using in Jekyll
+
+The yaml files can be used by jekyll. Assuming these files end up in your
+_data directory, you can use them with [liquid](http://jekyllrb.com/docs/templates/).
+
+i.e. for events listing we use 
+
+``` html
+{% for event in site.data.eventsdata %}
+	<li><a href="{{ event.url }}" {% if event.url contains 'http' %}target="_blank"{% endif %}>{{ event.title }}</a>, {{ event.dateandloc }}</li>
+  {% endfor %}
+```
 
 ## Dependencies
 
 * [gspread](https://github.com/burnash/gspread)
 * [oauth2client](https://github.com/google/oauth2client)
+* [markdown](https://pypi.python.org/pypi/Markdown)
+

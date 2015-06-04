@@ -1,15 +1,17 @@
 #!/usr/bin/python
 #
 # an events calender cheat app, use a simple google spreadsheet
-# to keep track of events, and generate a markdown file of past
+# to keep track of events, and generate a yaml file of past
 # and future events for use later in Jekyll
 #
-# we also pull a news feed for the same doc
+# we also pull a news feed from the same doc
 #
 
 import gspread
 import os
 import argparse
+import markdown
+import re
 from oauth2client.client import SignedJwtAssertionCredentials
 from datetime import date, datetime, timedelta
 from time import strptime, mktime
@@ -44,25 +46,24 @@ def extractEvents(gc, outDir):
     sh = gc.open(os.environ['EVENTS_SHEET'])
     ws = sh.worksheet("Events")
 
-    if ( not os.path.isdir(outDir) ):
-        print "Outdir %s not found" % outDir
-        exit(1)
+    _checkDirs(outDir)
 
     today = str(date.today().strftime('%-m/%-d/%Y'))
     allVals = ws.get_all_records()
 
-    upcomingFile = outDir + "/UpcomingEvents.md"
-    pastFile = outDir + "/PastEvents.md"
+    upcomingEventsYAML = outDir + "/_data/eventsdata.yml"
+    pastEventsYAML = outDir + "/_data/pasteventsdata.yml"
 
-    upcoming = open(upcomingFile, "w")
-    past = open(pastFile, "w")
+    upcoming = open(upcomingEventsYAML, "w")
+    past = open(pastEventsYAML, "w")
 
     for row in allVals:
         thisDate = row['Date']
 
         if ( row['Publish'] == 'Yes' ):
-            thisEvent = "* (" + row['Link'] + ")[" + row['Title'] + "]"
-            thisEvent += ", " + row['Location'] + "," + row['Long Date String'] + "\n"
+            thisEvent = "- title:" + row['Title'] + "\n"
+            thisEvent += "  dateandloc: " + row['Location'] + "," + row['Long Date String'] + "\n"
+            thisEvent += "  url: " +  row['Link'] + "\n\n"
 
             if ( thisDate >= today ):
                 upcoming.write(thisEvent)
@@ -73,17 +74,15 @@ def extractNews(gc, outDir):
     sh = gc.open(os.environ['EVENTS_SHEET'])
     ws = sh.worksheet("News")
 
-    if ( not os.path.isdir(outDir) ):
-        print "Outdir %s not found" % outDir
-        exit(1)
+    _checkDirs(outDir)
 
     allVals = ws.get_all_records()
 
-    allNewsFile = outDir + "/AllNews.md"
-    latestNewsFile = outDir + "/LatestNews.md"
+    allNewsYAML = outDir + "/_data/allnewsdata.yml"
+    latestNewsYAML = outDir + "/_data/newsdata.yml"
 
-    allNews = open(allNewsFile, "w")
-    latestNews = open(latestNewsFile, "w")
+    allNews = open(allNewsYAML, "w")
+    latestNews = open(latestNewsYAML, "w")
 
     ourNews = dict()
     minCounter = 0
@@ -95,9 +94,18 @@ def extractNews(gc, outDir):
 
         if ( row['Publish'] == 'Yes' ):
             if (row['Alternative_Text'] == ''):
-                thisNews = "* (" + row['Link'] + ")[" + row['Title'] + "]\n"
+                thisNews = "- title: " + row['Title'] + "\n"
+                thisNews += "  url: " + row['Link'] + "\n"
+                thisNews += "  alternative: \n\n"
             else:
-                thisNews = "* " + row['Alternative_Text'] + "\n"
+                # we need to parse out the mark down..
+                altText = markdown.markdown(row['Alternative_Text'])
+                # and markdown adds <p> ... </p> per spec, we need to remove
+                # theses
+                altTextClean = re.search('<p>(.*)</p>', altText, re.IGNORECASE)
+                thisNews = "- title:\n"
+                thisNews += "  url:\n"
+                thisNews += "  alternative: " + altTextClean.group(1) + "\n\n"
 
         if longDate in ourNews:
             minCounter += 1
@@ -114,10 +122,20 @@ def extractNews(gc, outDir):
 
         allNews.write(ourNews[key])
 
+def _checkDirs(outDir):
+    dataDir = outDir + "/_data"
+
+    if ( not os.path.isdir(outDir) ):
+        print "Outdir %s not found" % outDir
+        exit(1)
+
+    if ( not os.path.isdir(dataDir) and ( outDir == '/tmp') ):
+        os.mkdir(dataDir)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', help='Ouput Directory', default='/tmp')
+    parser.add_argument('-d', help='Output Directory, defaults to /tmp', default='/tmp')
     args = parser.parse_args()
     gc = oauthLogin()
-    #extractEvents(gc, args.d)
+    extractEvents(gc, args.d)
     extractNews(gc, args.d)
